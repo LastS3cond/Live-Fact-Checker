@@ -1,16 +1,16 @@
 # app.py
 import streamlit as st
 import html
-import google.generativeai as genai
 from llm import init_claim_model, init_fact_check_model
+from youtube_transcript_api import YouTubeTranscriptApi
 import json
 
 # Add CSS styles for highlights
 css = """
 <style>
 .highlight {
-    background-color: #fff3cd;
-    border-bottom: 2px solid #ffc107;
+    background-color: #F6BE00;
+    border-bottom: 2px solid #B58B00;
     cursor: help;
     position: relative;
     display: inline-block;
@@ -46,7 +46,7 @@ css = """
 
 def highlight_claim(original_text, claim, result, currentIdx):
     # Build HTML with highlighted claims
-    start = original_text.find(claim)
+    start = original_text.lower().find(claim.lower())
     end = start + len(claim)
     html_parts = []
 
@@ -63,16 +63,57 @@ def highlight_claim(original_text, claim, result, currentIdx):
     return end, css + "".join(html_parts)
 
 
+def extract_transcript(youtube_video_url):
+    """
+    Extracts the transcript from a YouTube video.
+
+    Assumes a URL format like: https://www.youtube.com/watch?v=VIDEO_ID
+    """
+    try:
+        # Extract video id from the URL (handles additional parameters)
+        video_id = youtube_video_url.split("v=")[1]
+        ampersand_position = video_id.find("&")
+        if ampersand_position != -1:
+            video_id = video_id[:ampersand_position]
+
+        transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
+        # Join all transcript parts into a single string
+        transcript = " ".join([entry["text"] for entry in transcript_data])
+        return transcript
+    except Exception as e:
+        st.error(f"Error extracting transcript: {e}")
+        return ""
+
+
 # Text input options
-input_method = st.radio("Choose input method:", ("Upload Text File", "Type Text"))
+input_method = st.radio(
+    "Choose input method:",
+    ("Upload Text File", "Type Text", "YouTube Video Transcription"),
+)
 
 user_text = ""
+youtube_url = ""
 if input_method == "Upload Text File":
     uploaded_file = st.file_uploader("Upload text file", type=["txt"])
     if uploaded_file:
         user_text = uploaded_file.read().decode("utf-8")
-else:
+elif input_method == "Type Text":
     user_text = st.text_area("Enter your text here:", height=200)
+elif input_method == "YouTube Video Transcription":
+    youtube_url = st.text_input("Enter the YouTube video URL:")
+
+if input_method == "YouTube Video Transcription":
+    if youtube_url.strip():
+        with st.spinner("Transcribing YouTube video..."):
+            transcript = extract_transcript(youtube_url)
+        if transcript:
+            user_text = transcript  # Use the transcript as the text to process
+        else:
+            st.error("Could not retrieve transcript from the provided URL.")
+            st.stop()
+    else:
+        st.warning("Please enter a valid YouTube video URL.")
+        st.stop()
 
 # Process text when button is clicked
 if st.button("Modify Text") and user_text.strip():
@@ -80,21 +121,9 @@ if st.button("Modify Text") and user_text.strip():
         model = init_claim_model()
         print("testing gemini")
         with st.spinner("Modifying text with Gemini..."):
-            result = model.generate_content(
-                user_text,
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema={
-                        "type": "object",
-                        "properties": {
-                            "claims": {"type": "array", "items": {"type": "string"}}
-                        },
-                        "required": ["claims"],
-                    },
-                ),
-            )
+            result = model.generate_content(user_text)
             claims = json.loads(result.text)["claims"]
-            print(claims)
+            print(result.text)
             st.subheader("Modified Text")
             currentIdx = 0
             # Analyze each claim
@@ -117,12 +146,3 @@ if st.button("Modify Text") and user_text.strip():
 
 elif user_text.strip():
     st.warning("Click the 'Modify Text' button to process your input")
-
-
-def extract_transcript(youtube_video_url):
-    video_id = youtube_video_url.split("=")[1]
-    transcript_text = YouTubeTranscriptApi.get_transcript(video_id)
-    transcript = ""
-    for i in transcript_text:
-        transcript += " " + i["text"]
-    return transcript
