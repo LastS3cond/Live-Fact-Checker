@@ -1,20 +1,16 @@
+# app.py
 import streamlit as st
 import html
-import re
-from llm import (
-    CLAIM_PROMPT,
-    FACT_CHECK_PROMPT,
-    init_claim_model,
-    init_fact_check_model,
-)
-from youtube_transcript_api import YouTubeTranscriptApi  # Import for YouTube transcripts
+from llm import init_client, claim_config, fc_config
+from youtube_transcript_api import YouTubeTranscriptApi
+import json
 
 # Add CSS styles for highlights
 css = """
 <style>
 .highlight {
-    background-color: #fff3cd;
-    border-bottom: 2px solid #ffc107;
+    background-color: #F6BE00;
+    border-bottom: 2px solid #B58B00;
     cursor: help;
     position: relative;
     display: inline-block;
@@ -47,42 +43,30 @@ css = """
 </style>
 """
 
-def record_claims(user_text):
-    """Extract claims marked up in the text with <claim>...</claim> tags."""
-    pattern = re.compile(r"<claim>(.*?)</claim>", re.DOTALL)
-    claims = pattern.findall(user_text)
-    return claims
 
 def highlight_claim(original_text, claim, result, currentIdx):
-
-    result_text = result.candidates[0].content.parts[0].text
     # Build HTML with highlighted claims
-
-    start = original_text.find(claim)
+    start = original_text.lower().find(claim.lower())
     end = start + len(claim)
     html_parts = []
 
-    # Append the text preceding the claim
+    # Add preceding text
     html_parts.append(html.escape(original_text[currentIdx:start]))
 
-    # Append the highlighted claim with a tooltip showing the fact-check result
+    # Add highlighted claim
     claim_text = html.escape(original_text[start:end])
-    # html_parts.append(
-    #     f'<span class="highlight">{claim_text}'
-    #     f'<span class="tooltip">{result}</span></span>'
-    # )
-
     html_parts.append(
         f'<span class="highlight">{claim_text}'
-        f'<span class="tooltip">{html.escape(result_text)}</span></span>'
+        f'<span class="tooltip">{result}</span></span>'
     )
 
     return end, css + "".join(html_parts)
 
+
 def extract_transcript(youtube_video_url):
     """
     Extracts the transcript from a YouTube video.
-    
+
     Assumes a URL format like: https://www.youtube.com/watch?v=VIDEO_ID
     """
     try:
@@ -91,7 +75,7 @@ def extract_transcript(youtube_video_url):
         ampersand_position = video_id.find("&")
         if ampersand_position != -1:
             video_id = video_id[:ampersand_position]
-        
+
         transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
         # Join all transcript parts into a single string
         transcript = " ".join([entry["text"] for entry in transcript_data])
@@ -100,13 +84,11 @@ def extract_transcript(youtube_video_url):
         st.error(f"Error extracting transcript: {e}")
         return ""
 
-# -----------------------------------
-# Input Options
-# -----------------------------------
-# Now we include a third option for YouTube Video Transcription.
+
+# Text input options
 input_method = st.radio(
     "Choose input method:",
-    ("Upload Text File", "Type Text", "YouTube Video Transcription")
+    ("Upload Text File", "Type Text", "YouTube Video Transcription"),
 )
 
 user_text = ""
@@ -120,53 +102,55 @@ elif input_method == "Type Text":
 elif input_method == "YouTube Video Transcription":
     youtube_url = st.text_input("Enter the YouTube video URL:")
 
-# -----------------------------------
-# Process Input on Button Click
-# -----------------------------------
-if st.button("Modify Text"):
-    # If YouTube transcription is selected, extract the transcript first.
-    if input_method == "YouTube Video Transcription":
-        if youtube_url.strip():
-            with st.spinner("Transcribing YouTube video..."):
-                transcript = extract_transcript(youtube_url)
-            if transcript:
-                user_text = transcript  # Use the transcript as the text to process
-            else:
-                st.error("Could not retrieve transcript from the provided URL.")
-                st.stop()
+if input_method == "YouTube Video Transcription":
+    if youtube_url.strip():
+        with st.spinner("Transcribing YouTube video..."):
+            transcript = extract_transcript(youtube_url)
+        if transcript:
+            user_text = transcript  # Use the transcript as the text to process
         else:
-            st.warning("Please enter a valid YouTube video URL.")
+            st.error("Could not retrieve transcript from the provided URL.")
             st.stop()
-    
-    if user_text.strip():
-        try:
-            # Initialize the claim model and generate modified text
-            model = init_claim_model(CLAIM_PROMPT)
-            with st.spinner("Modifying text with Gemini..."):
-                response = model.generate_content(user_text)
-                modified_text = response.text
+    else:
+        st.warning("Please enter a valid YouTube video URL.")
+        st.stop()
 
-            # Record claims in the modified text (assumed to be wrapped in <claim> tags)
-            claims = record_claims(modified_text)
+# Process text when button is clicked
+if st.button("Modify Text") and user_text.strip():
+    client = init_client()
+    try:
+        with st.spinner("Modifying text with Gemini..."):
+            print("Testing first gemini")
+            result = client.models.generate_content(
+                model="gemini-2.0-flash-exp", contents=user_text, config=claim_config
+            )
+            claims = json.loads(result.text)["claims"]
+            print(result.text)
             st.subheader("Modified Text")
             currentIdx = 0
 
-            # Process each claim with the fact-check model
+            print("Fact checking claims")
+            # Analyze each claim
             for claim in claims:
-                model2 = init_fact_check_model(FACT_CHECK_PROMPT)
-                # Generate fact-check result for the claim
-                claim_result = model2.generate_content(claim).text
+                claim_result = client.models.generate_content(
+                    model="gemini-2.0-flash-exp", contents=claim, config=fc_config
+                )
+                print(claim_result)
                 currentIdx, highlighted_html = highlight_claim(
-                    user_text.strip(), claim, claim_result, currentIdx
+                    user_text.strip(),
+                    claim,
+                    json.loads("\n".join(claim_result.text.splitlines()[1:-1])),
+                    currentIdx,
                 )
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
-                    st.write("Original text:", modified_text)
-            
-            # Output any remaining text after the last highlighted claim
+                    st.write("Original text:", user_text)
+
             st.markdown(html.escape(user_text.strip()[currentIdx:]))
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-    else:
-        st.warning("Please provide some input before processing.")
+
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+
+elif user_text.strip():
+    st.warning("Click the 'Modify Text' button to process your input")
