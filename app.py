@@ -2,6 +2,7 @@
 import streamlit as st
 from dotenv import load_dotenv
 import os
+import re
 from llm import (
     GOOGLE_API_KEY,
     CLAIM_PROMPT,
@@ -70,29 +71,8 @@ css = """
 # claims = [("[txt]", currentClaimNum, currentTextIndex, currentLen), ....]
 # <claim></claim>
 def record_claims(user_text):
-    currentClaimNum = 0
-    currentTextIndex = 0
-    claims = []
-    i = 0
-    readingClaim = False
-    sentence = ""
-
-    while i < len(user_text):
-        if readingClaim == True and user_text[i] == "<":
-            # sentence += user_text[i]
-            readingClaim = False
-            claims.append((sentence, currentTextIndex - 15 * currentClaimNum - 7, i - currentTextIndex))
-            currentClaimNum += 1
-            sentence = ""
-
-        if readingClaim == True:
-            sentence += user_text[i]
-
-        if user_text[i] == ">" and i - 6 and user_text[i - 6] != "/":
-            readingClaim = True
-            currentTextIndex = i
-
-        i += 1
+    pattern = re.compile(r'<claim>(.*?)</claim>', re.DOTALL)
+    claims = pattern.findall(user_text)
     return claims
 
 
@@ -101,31 +81,24 @@ import html
 
 
 def highlight_claim(original_text, claim, result):
-    lines = claim.splitlines()
-    truth = lines[0]
-    harm = lines[1]
 
     # Build HTML with highlighted claims
+    start = original_text.find(claim)
+    end = start + len(claim)
     html_parts = []
-    current_pos = 0
-
-    start = claim["claimPos"]
-    end = start + claim["claimLen"]
 
     # Add preceding text
-    html_parts.append(html.escape(original_text[current_pos:start]))
+    html_parts.append(html.escape(original_text[0:start]))
 
     # Add highlighted claim
     claim_text = html.escape(original_text[start:end])
-    tooltip = f"Truth: {truth}<br>Bias: {harm}<br>"
     html_parts.append(
         f'<span class="highlight">{claim_text}'
-        f'<span class="tooltip">{tooltip}</span></span>'
+        f'<span class="tooltip">{result}</span></span>'
     )
-    current_pos = end
 
     # Add remaining text
-    html_parts.append(html.escape(original_text[current_pos:]))
+    html_parts.append(html.escape(original_text[end:]))
 
     return css + "".join(html_parts)
 
@@ -161,8 +134,7 @@ if st.button("Modify Text") and user_text.strip():
 
                 st.subheader("Modified Text")
                 highlighted_html = highlight_claim(
-                    user_text.strip(), claim, claim_result
-                )
+                    user_text.strip(), claim, claim_result)
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
