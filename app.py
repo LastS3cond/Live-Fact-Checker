@@ -1,11 +1,9 @@
 # app.py
 import streamlit as st
 import html
-import re
-from llm import (
-    init_claim_model,
-    init_fact_check_model,
-)
+import google.generativeai as genai
+from llm import init_claim_model, init_fact_check_model
+import json
 
 # Add CSS styles for highlights
 css = """
@@ -46,12 +44,6 @@ css = """
 """
 
 
-def record_claims(user_text):
-    pattern = re.compile(r"<claim>(.*?)</claim>", re.DOTALL)
-    claims = pattern.findall(user_text)
-    return claims
-
-
 def highlight_claim(original_text, claim, result, currentIdx):
     # Build HTML with highlighted claims
     start = original_text.find(claim)
@@ -88,10 +80,20 @@ if st.button("Modify Text") and user_text.strip():
         model = init_claim_model()
         print("testing gemini")
         with st.spinner("Modifying text with Gemini..."):
-            response = model.generate_content(user_text)
-            modified_text = response.text
-
-            claims = record_claims(modified_text)
+            result = model.generate_content(
+                user_text,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "claims": {"type": "array", "items": {"type": "string"}}
+                        },
+                        "required": ["claims"],
+                    },
+                ),
+            )
+            claims = json.loads(result.text)["claims"]
             print(claims)
             st.subheader("Modified Text")
             currentIdx = 0
@@ -106,7 +108,7 @@ if st.button("Modify Text") and user_text.strip():
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
-                    st.write("Original text:", modified_text)
+                    st.write("Original text:", user_text)
 
             st.markdown(html.escape(user_text.strip()[currentIdx:]))
 

@@ -18,11 +18,7 @@ Instructions:
 
     Identify Factual Claims: Look for assertions about events, conditions, or situations that exist or have existed and can be independently verified.
     Exclude Future or Conditional Statements: Do not tag any statements that predict or promise future actions, even if they include factual elements.
-    Tagging Format: Wrap each clear, standalone factual claim in <claim></claim> tags.
-        Example:
-        If the sentence is “The city’s population exceeded one million in 2020,” it should be formatted as:
-        <claim>The city’s population exceeded one million in 2020</claim>
-
+    Output as the extracted claims in a JSON array without modifying the original words.
 By following these guidelines, you will ensure that only verifiable, factual statements are marked, and statements indicating future intentions (such as those using “will”) are correctly excluded."""
 
 # System prompt (hidden from user but can be modified in code)
@@ -39,7 +35,6 @@ The accepted values for harm are "Extremely harmful to [groups harmed]", "Harmfu
 genai.configure(api_key=GOOGLE_API_KEY)
 
 
-# Initialize Gemini model
 def init_claim_model():
     return genai.GenerativeModel("gemini-1.5-flash", system_instruction=CLAIM_PROMPT)
 
