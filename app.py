@@ -52,23 +52,28 @@ def initialize_model(system_prompt):
 # currentTextIndex should be index where the <claim> starts. Test this with
 # streamlit run app.py
 # claims [("<claim>[txt]</claim", currentClaimNum, currentTextIndex), ....]
-def record_claims(user_text):      
+def record_claims(user_text):   
+    currentClaimNum = 0
+    currentTextIndex = 0
     claims = []
     i = 0
     cap_sentence = False
+    sentence = ''
 
     while i < len(user_text):
-        sentence = ""
+
         if user_text[i:i+1] == '>':
             cap_sentence = True
+            currentTextIndex = i
         
         if cap_sentence == True:
             sentence += user_text[i]
         
-        if cap_sentence == True and user_text[i] == '':
+        if cap_sentence == True and user_text[i] == '<':
             sentence += user_text[i]
             cap_sentence == False
-            claims.append(sentence)
+            claims.append((sentence, i - currentTextIndex))
+            currentClaimNum += 1
             sentence = ''
             
     return claims 
