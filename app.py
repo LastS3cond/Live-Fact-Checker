@@ -57,7 +57,7 @@ def highlight_claim(original_text, claim, result, currentIdx):
     claim_text = html.escape(original_text[start:end])
     html_parts.append(
         f'<span class="highlight">{claim_text}'
-        f'<span class="tooltip">{result}</span></span>'
+        f'<span class="tooltip">{result["truth"]}</span></span>'
     )
 
     return end, css + "".join(html_parts)
