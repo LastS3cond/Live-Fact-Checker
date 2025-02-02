@@ -1,6 +1,7 @@
 # frontend.py
 import streamlit as st
-from app import process_text  # Import the backend function
+import subprocess
+import json
 
 # Set up page configuration
 st.set_page_config(page_title="Live Fact Checker", page_icon="✨")
@@ -65,46 +66,32 @@ else:
 if st.button("Modify Text") and user_text.strip():
     try:
         with st.spinner("Modifying text with Gemini..."):
-            modified_text, claim_info = process_text(user_text)
-            
-            # Highlight the modified text with claims
+            # Call app.py via subprocess
+            result = subprocess.run(
+                ['python3', 'app.py', user_text],
+                capture_output=True,
+                text=True
+            )
+
+            # Parse the JSON output from app.py
+            result_data = json.loads(result.stdout)
+
+            modified_text = result_data["modified_text"]
+            fact_check_results = result_data["fact_check_results"]
+
+            # Display the modified text and claims
             st.subheader("Modified Text")
-            highlighted_html = highlight_claims(user_text.strip(), claim_info)
-            if highlighted_html:
-                st.markdown(highlighted_html, unsafe_allow_html=True)
-            else:
-                st.write("Original text:", modified_text)
-            
+            st.write(modified_text)
+
+            st.subheader("Fact Check Results")
+            for fact in fact_check_results:
+                st.write(f"Claim: {fact['claim']}")
+                st.write(f"Truth Value: {fact['truthVal']}")
+                st.write(f"Bias: {fact['bias']}")
+                st.write(f"Harm: {fact['harm']}")
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
 elif user_text.strip():
     st.warning("Click the 'Modify Text' button to process your input")
-
-# Function to highlight claims in the text
-def highlight_claims(original_text, claims):
-    sorted_claims = sorted(claims, key=lambda x: x['claimPos'])
-    html_parts = []
-    current_pos = 0
-    
-    for claim in sorted_claims:
-        start = claim['claimPos']
-        end = start + claim['claimLen']
-        html_parts.append(html.escape(original_text[current_pos:start]))
-        
-        claim_text = html.escape(original_text[start:end])
-        tooltip = (
-            f"Truth: {claim['truthVal']}<br>"
-            f"Bias: {claim['bias']}<br>"
-            f"Harm: {claim['harm']}<br>"
-            f"Position: {start}<br>"
-            f"Length: {claim['claimLen']}"
-        )
-        html_parts.append(
-            f'<span class="highlight">{claim_text}'
-            f'<span class="tooltip">{tooltip}</span></span>'
-        )
-        current_pos = end
-
-    html_parts.append(html.escape(original_text[current_pos:]))
-    return "".join(html_parts)
