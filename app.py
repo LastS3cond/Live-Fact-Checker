@@ -28,6 +28,21 @@ tag. For all speakers, try to infer their names and if no name can be
 inferred, call them by Speaker #X. Separate each speaker\u0027s transcript 
 with [Speaker name]: [Speaker text]."""
 
+# System prompt (hidden from user but can be modified in code)
+FACT_CHECK_PROMPT = """You will be given a list of claims, with each claim 
+contained in the tags <claim claimIdx = X, claimPos = Y> </claim>. Your job is 
+to use search engines to determine the truth value, bias in terms of left/right, 
+relative harm, and hate of a the claim as best you can. Any sources used for the 
+truth value should be cited. The format should be in a json object, with each claim
+in json, like {claim:[claim text], claimIdx = [numIdx], claimPos = [numPos], 
+truthVal = [truthVal], bias = [bias], harm = [harm]}. The accepted values for truthVal
+are "Certainly False", "Somewhat False", "Neutral/Ambiguous", "Somewhat True", 
+"Certainly True". The accepted values for bias are "Right Bias", "Slight Right Bias", 
+"Neutral/Ambiguous", "Slight Left Bias", "Left Bias". The accepted values for harm
+are "Extremely harmful to [groups harmed]", "Harmful to [groups harmed]", 
+"Somewhat Harmful to [groups harmed]", "Slightly Harmful to [groups harmed]",
+"Harmful to no groups"."""
+
 # Initialize Gemini model
 def initialize_model(system_prompt):
     genai.configure(api_key=GOOGLE_API_KEY)
