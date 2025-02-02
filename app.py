@@ -54,7 +54,10 @@ def record_claims(user_text):
     return claims
 
 def highlight_claim(original_text, claim, result, currentIdx):
-    """Highlight a claim in the original text and append a tooltip with the result."""
+
+    result_text = result.candidates[0].content.parts[0].text
+    # Build HTML with highlighted claims
+
     start = original_text.find(claim)
     end = start + len(claim)
     html_parts = []
@@ -64,9 +67,14 @@ def highlight_claim(original_text, claim, result, currentIdx):
 
     # Append the highlighted claim with a tooltip showing the fact-check result
     claim_text = html.escape(original_text[start:end])
+    # html_parts.append(
+    #     f'<span class="highlight">{claim_text}'
+    #     f'<span class="tooltip">{result}</span></span>'
+    # )
+
     html_parts.append(
         f'<span class="highlight">{claim_text}'
-        f'<span class="tooltip">{result}</span></span>'
+        f'<span class="tooltip">{html.escape(result_text)}</span></span>'
     )
 
     return end, css + "".join(html_parts)
