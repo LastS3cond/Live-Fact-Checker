@@ -36,5 +36,4 @@ def init_fact_check_model(system_prompt):
     return genai.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=system_prompt,
-        tools="google_search_retrieval",
     )

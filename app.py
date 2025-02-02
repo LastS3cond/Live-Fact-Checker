@@ -13,20 +13,7 @@ from llm import (
 
 load_dotenv()
 
-
-# Set up page configuration
-st.set_page_config(page_title="Live Fact Check", page_icon="✨")
-
-if not GOOGLE_API_KEY:
-    st.error("❌ Google API key not found in .env file")
-    st.stop()
-
-
-# Main interface
-st.title("📝 Text Modifier with Gemini")
-st.write("Upload a text file or enter text to modify it using Gemini!")
-
-# Add CSS styles
+# Add CSS styles for highlights
 css = """
 <style>
 .highlight {
@@ -65,11 +52,6 @@ css = """
 """
 
 
-# currentClaimNum should be global variable that get incremented everytime we add a claim
-# currentTextIndex should be index where the <claim> starts.
-# Test this with streamlit run app.py
-# claims = [("[txt]", currentClaimNum, currentTextIndex, currentLen), ....]
-# <claim></claim>
 def record_claims(user_text):
     pattern = re.compile(r'<claim>(.*?)</claim>', re.DOTALL)
     claims = pattern.findall(user_text)
@@ -80,7 +62,7 @@ import streamlit as st
 import html
 
 
-def highlight_claim(original_text, claim, result):
+def highlight_claim(original_text, claim, result, currentIdx):
 
     # Build HTML with highlighted claims
     start = original_text.find(claim)
@@ -88,7 +70,7 @@ def highlight_claim(original_text, claim, result):
     html_parts = []
 
     # Add preceding text
-    html_parts.append(html.escape(original_text[0:start]))
+    html_parts.append(html.escape(original_text[currentIdx:start]))
 
     # Add highlighted claim
     claim_text = html.escape(original_text[start:end])
@@ -98,9 +80,9 @@ def highlight_claim(original_text, claim, result):
     )
 
     # Add remaining text
-    html_parts.append(html.escape(original_text[end:]))
+    # html_parts.append(html.escape(original_text[end:]))
 
-    return css + "".join(html_parts)
+    return end, css + "".join(html_parts)
 
 
 # Text input options
@@ -125,16 +107,17 @@ if st.button("Modify Text") and user_text.strip():
 
             claims = record_claims(modified_text)
             print(claims)
-
+            st.subheader("Modified Text")
+            currentIdx = 0
             # Analyze each claim
             for claim in claims:
-                model = init_fact_check_model(FACT_CHECK_PROMPT)
-                claim_result = model.generate_content(claim)
-                print(claim_result)
 
-                st.subheader("Modified Text")
-                highlighted_html = highlight_claim(
-                    user_text.strip(), claim, claim_result)
+                model2 = init_fact_check_model(FACT_CHECK_PROMPT)
+                claim_result = model2.generate_content(claim)
+
+
+                currentIdx, highlighted_html = highlight_claim(
+                    user_text.strip(), claim, claim_result, currentIdx)
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
