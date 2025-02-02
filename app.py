@@ -99,6 +99,13 @@ def record_claims(user_text):
     sentence = ''
 
     while i < len(user_text):
+        if cap_sentence == True and user_text[i] == '<':
+            #sentence += user_text[i]
+            cap_sentence = False
+            claims.append((sentence, currentTextIndex, i - currentTextIndex))
+            currentClaimNum += 1
+            sentence = ''
+            
         if cap_sentence == True:
             sentence += user_text[i]
 
@@ -106,12 +113,7 @@ def record_claims(user_text):
             cap_sentence = True
             currentTextIndex = i
     
-        if cap_sentence == True and user_text[i] == '<':
-            #sentence += user_text[i]
-            cap_sentence == False
-            claims.append((sentence, currentTextIndex, i - currentTextIndex))
-            currentClaimNum += 1
-            sentence = ''
+        
         i += 1
     return claims 
 
