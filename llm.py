@@ -7,14 +7,23 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # System prompt (hidden from user but can be modified in code)
-CLAIM_PROMPT = """Your task is to parse a speech, and you are 
-going to identify any claims made within the speech that assert 
-some fact which can be fact-checked using external resources. The 
-claims may or may not be true, however you are not going to determine 
-the validity of the truth. You must wrap any claims with a <claim></claim> 
-tag. For all speakers, try to infer their names and if no name can be 
-inferred, call them by Speaker #X. Separate each speaker's transcript 
-with [Speaker name]: [Speaker text]."""
+CLAIM_PROMPT = """Your task is to analyze a given speech and identify only those statements that assert an objective, verifiable fact. Factual claims are statements that describe events or conditions that can be checked against external evidence.
+
+Do Not Tag the Following as Factual Claims:
+
+    Opinions or Subjective Views: Statements that express personal feelings or beliefs.
+    Promises, Predictions, or Intentions: Statements that forecast future actions or commitments (often indicated by words like “will”). For example, if a speaker says, “I will direct our government to use the full power of law enforcement...,” this is a promise or intended action—not a present, verifiable fact.
+
+Instructions:
+
+    Identify Factual Claims: Look for assertions about events, conditions, or situations that exist or have existed and can be independently verified.
+    Exclude Future or Conditional Statements: Do not tag any statements that predict or promise future actions, even if they include factual elements.
+    Tagging Format: Wrap each clear, standalone factual claim in <claim></claim> tags.
+        Example:
+        If the sentence is “The city’s population exceeded one million in 2020,” it should be formatted as:
+        <claim>The city’s population exceeded one million in 2020</claim>
+
+By following these guidelines, you will ensure that only verifiable, factual statements are marked, and statements indicating future intentions (such as those using “will”) are correctly excluded."""
 
 # System prompt (hidden from user but can be modified in code)
 FACT_CHECK_PROMPT = """You will be given a claim. Your job is 
@@ -31,12 +40,12 @@ genai.configure(api_key=GOOGLE_API_KEY)
 
 
 # Initialize Gemini model
-def init_claim_model(system_prompt):
-    return genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_prompt)
+def init_claim_model():
+    return genai.GenerativeModel("gemini-1.5-flash", system_instruction=CLAIM_PROMPT)
 
 
-def init_fact_check_model(system_prompt):
+def init_fact_check_model():
     return genai.GenerativeModel(
         "gemini-1.5-flash",
-        system_instruction=system_prompt,
+        system_instruction=FACT_CHECK_PROMPT,
     )

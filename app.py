@@ -3,8 +3,6 @@ import streamlit as st
 import html
 import re
 from llm import (
-    CLAIM_PROMPT,
-    FACT_CHECK_PROMPT,
     init_claim_model,
     init_fact_check_model,
 )
@@ -87,7 +85,7 @@ else:
 # Process text when button is clicked
 if st.button("Modify Text") and user_text.strip():
     try:
-        model = init_claim_model(CLAIM_PROMPT)
+        model = init_claim_model()
         print("testing gemini")
         with st.spinner("Modifying text with Gemini..."):
             response = model.generate_content(user_text)
@@ -99,17 +97,17 @@ if st.button("Modify Text") and user_text.strip():
             currentIdx = 0
             # Analyze each claim
             for claim in claims:
-                model2 = init_fact_check_model(FACT_CHECK_PROMPT)
+                model2 = init_fact_check_model()
                 # claim_result = model2.generate_content(claim)
 
                 currentIdx, highlighted_html = highlight_claim(
-                    user_text.strip(), claim, claim_result, currentIdx
+                    user_text.strip(), claim, "", currentIdx
                 )
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
                     st.write("Original text:", modified_text)
-            
+
             st.markdown(html.escape(user_text.strip()[currentIdx:]))
 
     except Exception as e:
