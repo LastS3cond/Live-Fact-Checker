@@ -17,7 +17,7 @@ Instructions:
     - Identify Factual Claims: Look for assertions about events, conditions, or situations that exist or have existed and can be independently verified.
     - Exclude Future or Conditional Statements: Do not tag any statements that predict or promise future actions, even if they include factual elements.
     - Facts should be specific and complete statements.
-    - Output as the extracted claims in a JSON array without modifying the original words. Include a topic field in the output.
+    - Output as the extracted claims in a JSON array without modifying the original words. Include a context field in the output with short contextual decsription of the text.
 By following these guidelines, you will ensure that only verifiable, factual statements are marked, and statements indicating future intentions are correctly excluded."""
 
 # System prompt (hidden from user but can be modified in code)
@@ -37,7 +37,7 @@ claim_config = GenerateContentConfig(
         "type": "object",
         "properties": {
             "claims": {"type": "array", "items": {"type": "string"}},
-            "topic": {"type": "string"},
+            "context": {"type": "string"},
         },
         "required": ["claims"],
     },
@@ -48,8 +48,9 @@ claim_config = GenerateContentConfig(
 
 fc_config = GenerateContentConfig(
     tools=[Tool(google_search=GoogleSearch())],
-    response_modalities=["TEXT"],
+    # response_modalities=["TEXT"],
     system_instruction=FACT_CHECK_PROMPT,
+    temperature=0,
 )
 
 

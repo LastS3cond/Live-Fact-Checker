@@ -124,7 +124,8 @@ if st.button("Modify Text") and user_text.strip():
             result = client.models.generate_content(
                 model="gemini-2.0-flash-exp", contents=user_text, config=claim_config
             )
-            claims = json.loads(result.text)["claims"]
+            claim_obj = json.loads(result.text)
+            claims = claim_obj["claims"]
             print(result.text)
             st.subheader("Modified Text")
             currentIdx = 0
@@ -132,8 +133,12 @@ if st.button("Modify Text") and user_text.strip():
             print("Fact checking claims")
             # Analyze each claim
             for claim in claims:
+                q = f"Context: {claim_obj['context']}\n Claim:{claim}"
+                print(q)
                 claim_result = client.models.generate_content(
-                    model="gemini-2.0-flash-exp", contents=claim, config=fc_config
+                    model="gemini-2.0-flash-exp",
+                    contents=q,
+                    config=fc_config,
                 )
                 print(claim_result)
                 currentIdx, highlighted_html = highlight_claim(
