@@ -79,9 +79,6 @@ def highlight_claim(original_text, claim, result, currentIdx):
         f'<span class="tooltip">{result}</span></span>'
     )
 
-    # Add remaining text
-    # html_parts.append(html.escape(original_text[end:]))
-
     return end, css + "".join(html_parts)
 
 
@@ -122,6 +119,8 @@ if st.button("Modify Text") and user_text.strip():
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:
                     st.write("Original text:", modified_text)
+            
+            st.markdown(html.escape(user_text.strip()[currentIdx:]))
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
