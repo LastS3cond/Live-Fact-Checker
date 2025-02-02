@@ -89,7 +89,7 @@ def initialize_model(system_prompt):
 # currentClaimNum should be global variable that get incremented everytime we add a claim
 # currentTextIndex should be index where the <claim> starts. 
 # Test this with streamlit run app.py
-# claims = [("<claim>[txt]</claim", currentClaimNum, currentTextIndex, currentLen), ....]
+# claims = [("[txt]", currentClaimNum, currentTextIndex, currentLen), ....]
 def record_claims(user_text):   
     currentClaimNum = 0
     currentTextIndex = 0
@@ -99,8 +99,7 @@ def record_claims(user_text):
     sentence = ''
 
     while i < len(user_text):
-
-        if user_text[i] == '>':
+        if user_text[i] == '>' and i-6 and user_text[i-6] != '/':
             cap_sentence = True
             currentTextIndex = i
         
@@ -110,7 +109,7 @@ def record_claims(user_text):
         if cap_sentence == True and user_text[i] == '<':
             sentence += user_text[i]
             cap_sentence == False
-            claims.append((sentence, i - currentTextIndex))
+            claims.append((sentence, currentTextIndex, i - currentTextIndex))
             currentClaimNum += 1
             sentence = ''
         i += 1
