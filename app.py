@@ -182,10 +182,10 @@ if st.button("Modify Text") and user_text.strip():
             modified_text = response.text
 
             claims = record_claims(modified_text)
+            print(claims)
             model = initialize_model(FACT_CHECK_PROMPT)
             claimInfo = model.generate_content(claims)
             st.subheader("Modified Text")
-            print(claimInfo)
             highlighted_html = highlight_claims(user_text.strip(), claimInfo)
             if highlighted_html:
                 st.markdown(highlighted_html, unsafe_allow_html=True)
