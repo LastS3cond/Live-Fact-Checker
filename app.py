@@ -1,17 +1,13 @@
 # app.py
 import streamlit as st
-from dotenv import load_dotenv
-import os
+import html
 import re
 from llm import (
-    GOOGLE_API_KEY,
     CLAIM_PROMPT,
     FACT_CHECK_PROMPT,
     init_claim_model,
     init_fact_check_model,
 )
-
-load_dotenv()
 
 # Add CSS styles for highlights
 css = """
@@ -53,17 +49,12 @@ css = """
 
 
 def record_claims(user_text):
-    pattern = re.compile(r'<claim>(.*?)</claim>', re.DOTALL)
+    pattern = re.compile(r"<claim>(.*?)</claim>", re.DOTALL)
     claims = pattern.findall(user_text)
     return claims
 
 
-import streamlit as st
-import html
-
-
 def highlight_claim(original_text, claim, result, currentIdx):
-
     # Build HTML with highlighted claims
     start = original_text.find(claim)
     end = start + len(claim)
@@ -111,13 +102,12 @@ if st.button("Modify Text") and user_text.strip():
             currentIdx = 0
             # Analyze each claim
             for claim in claims:
-
                 model2 = init_fact_check_model(FACT_CHECK_PROMPT)
-                claim_result = model2.generate_content(claim)
-
+                # claim_result = model2.generate_content(claim)
 
                 currentIdx, highlighted_html = highlight_claim(
-                    user_text.strip(), claim, claim_result, currentIdx)
+                    user_text.strip(), claim, claim_result, currentIdx
+                )
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
                 else:

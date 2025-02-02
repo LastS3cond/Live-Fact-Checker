@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
 import google.generativeai as genai
 import os
+
+load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -10,7 +13,7 @@ some fact which can be fact-checked using external resources. The
 claims may or may not be true, however you are not going to determine 
 the validity of the truth. You must wrap any claims with a <claim></claim> 
 tag. For all speakers, try to infer their names and if no name can be 
-inferred, call them by Speaker #X. Separate each speaker\u0027s transcript 
+inferred, call them by Speaker #X. Separate each speaker's transcript 
 with [Speaker name]: [Speaker text]."""
 
 # System prompt (hidden from user but can be modified in code)
