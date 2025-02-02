@@ -48,8 +48,29 @@ def initialize_model(system_prompt):
     genai.configure(api_key=GOOGLE_API_KEY)
     return genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
 
-def record_claims(user_text):
-    pass
+def record_claims(user_text):      
+    claims = []
+    i = 0
+    cap_sentence = False
+
+    while i < len(user_text):
+        sentence = ""
+        if user_text[i] == '<':
+            cap_sentence = True
+        
+        if cap_sentence == True:
+            sentence += user_text[i]
+        
+        if cap_sentence == True and user_text[i] == '.':
+            sentence += user_text[i]
+            cap_sentence == False
+            claims.append(sentence)
+            sentence = ''
+            
+    return claims 
+
+
+
 
 # Text input options
 input_method = st.radio("Choose input method:", ("Upload Text File", "Type Text"))
@@ -82,3 +103,9 @@ if st.button("Modify Text") and user_text.strip():
 
 elif user_text.strip():
     st.warning("Click the 'Modify Text' button to process your input")
+
+
+        
+
+        
+
