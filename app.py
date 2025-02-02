@@ -68,27 +68,28 @@ css = """
 # currentTextIndex should be index where the <claim> starts.
 # Test this with streamlit run app.py
 # claims = [("[txt]", currentClaimNum, currentTextIndex, currentLen), ....]
+# <claim></claim>
 def record_claims(user_text):
     currentClaimNum = 0
     currentTextIndex = 0
     claims = []
     i = 0
-    cap_sentence = False
+    readingClaim = False
     sentence = ""
 
     while i < len(user_text):
-        if cap_sentence == True and user_text[i] == "<":
+        if readingClaim == True and user_text[i] == "<":
             # sentence += user_text[i]
-            cap_sentence = False
-            claims.append((sentence, currentTextIndex, i - currentTextIndex))
+            readingClaim = False
+            claims.append((sentence, currentTextIndex - 15 * currentClaimNum - 7, i - currentTextIndex))
             currentClaimNum += 1
             sentence = ""
 
-        if cap_sentence == True:
+        if readingClaim == True:
             sentence += user_text[i]
 
         if user_text[i] == ">" and i - 6 and user_text[i - 6] != "/":
-            cap_sentence = True
+            readingClaim = True
             currentTextIndex = i
 
         i += 1
