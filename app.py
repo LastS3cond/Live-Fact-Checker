@@ -19,7 +19,7 @@ st.title("📝 Text Modifier with Gemini")
 st.write("Upload a text file or enter text to modify it using Gemini!")
 
 # System prompt (hidden from user but can be modified in code)
-SYSTEM_PROMPT = """Your task is to parse a speech, and you are 
+CLAIM_PROMPT = """Your task is to parse a speech, and you are 
 going to identify any claims made within the speech that assert 
 some fact which can be fact-checked using external resources. The 
 claims may or may not be true, however you are not going to determine 
@@ -29,9 +29,9 @@ inferred, call them by Speaker #X. Separate each speaker\u0027s transcript
 with [Speaker name]: [Speaker text]."""
 
 # Initialize Gemini model
-def initialize_model():
+def initialize_model(system_prompt):
     genai.configure(api_key=GOOGLE_API_KEY)
-    return genai.GenerativeModel('gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
+    return genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
 
 # Text input options
 input_method = st.radio("Choose input method:", ("Upload Text File", "Type Text"))
@@ -48,7 +48,7 @@ else:
 if st.button("Modify Text") and user_text.strip():
     
     try:
-        model = initialize_model()
+        model = initialize_model(CLAIM_PROMPT)
         with st.spinner("Modifying text with Gemini..."):
             response = model.generate_content(user_text)
             modified_text = response.text
