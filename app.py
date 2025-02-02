@@ -41,12 +41,15 @@ are "Certainly False", "Somewhat False", "Neutral/Ambiguous", "Somewhat True",
 "Neutral/Ambiguous", "Slight Left Bias", "Left Bias". The accepted values for harm
 are "Extremely harmful to [groups harmed]", "Harmful to [groups harmed]", 
 "Somewhat Harmful to [groups harmed]", "Slightly Harmful to [groups harmed]",
-"Harmful to no groups"."""
+"Harmful to no groups". Do not modify the claimIdx, claim text, or claimPos"""
 
 # Initialize Gemini model
 def initialize_model(system_prompt):
     genai.configure(api_key=GOOGLE_API_KEY)
     return genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
+
+def record_claims(user_text):
+    pass
 
 # Text input options
 input_method = st.radio("Choose input method:", ("Upload Text File", "Type Text"))
@@ -67,7 +70,10 @@ if st.button("Modify Text") and user_text.strip():
         with st.spinner("Modifying text with Gemini..."):
             response = model.generate_content(user_text)
             modified_text = response.text
-            
+
+            claims = record_claims(modified_text)
+            model = initialize_model(FACT_CHECK_PROMPT)
+            response = model.generate_content(claims)
             st.subheader("Modified Text")
             st.markdown(f"```\n{modified_text}\n```")
             
