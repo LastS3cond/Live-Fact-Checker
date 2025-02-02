@@ -1,5 +1,6 @@
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 import os
 
 load_dotenv()
@@ -22,38 +23,35 @@ By following these guidelines, you will ensure that only verifiable, factual sta
 # System prompt (hidden from user but can be modified in code)
 FACT_CHECK_PROMPT = """You will be given a claim about a specific topic. Your job is 
 to use web search to determine the truth value and relative harm of the given claim. Any sources used for the 
-truth value should be cited. Your output should be a truth value seperated by a line, harm value 
-separated by a line and a short paragraph explaining your decision. The accepted values for the truth
+truth value should be cited. Your output should be a JSON object should contain the properties "truth", "harm", and "decision" which is a short explanation of your decision. The accepted values for the truth
 are "Certainly False", "Somewhat False", "Neutral/Ambiguous", "Somewhat True", "Certainly True". 
 The accepted values for harm are "Extremely harmful to [groups harmed]", "Harmful to [groups harmed]", 
 "Somewhat Harmful to [groups harmed]", "Slightly Harmful to [groups harmed]",
 "Harmful to no groups".
 """
 
-genai.configure(api_key=GOOGLE_API_KEY)
+
+claim_config = GenerateContentConfig(
+    response_mime_type="application/json",
+    response_schema={
+        "type": "object",
+        "properties": {
+            "claims": {"type": "array", "items": {"type": "string"}},
+            "topic": {"type": "string"},
+        },
+        "required": ["claims"],
+    },
+    temperature=0.5,
+    system_instruction=CLAIM_PROMPT,
+)
 
 
-def init_claim_model():
-    return genai.GenerativeModel(
-        "gemini-1.5-flash",
-        system_instruction=CLAIM_PROMPT,
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json",
-            response_schema={
-                "type": "object",
-                "properties": {
-                    "claims": {"type": "array", "items": {"type": "string"}},
-                    "topic": {"type": "string"},
-                },
-                "required": ["claims"],
-            },
-            temperature=0.5,
-        ),
-    )
+fc_config = GenerateContentConfig(
+    tools=[Tool(google_search=GoogleSearch())],
+    response_modalities=["TEXT"],
+    system_instruction=FACT_CHECK_PROMPT,
+)
 
 
-def init_fact_check_model():
-    return genai.GenerativeModel(
-        "gemini-1.5-flash",
-        system_instruction=FACT_CHECK_PROMPT,
-    )
+def init_client():
+    return genai.Client(api_key=GOOGLE_API_KEY)

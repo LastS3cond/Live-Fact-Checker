@@ -1,7 +1,7 @@
 # app.py
 import streamlit as st
 import html
-from llm import init_claim_model, init_fact_check_model
+from llm import init_client, claim_config, fc_config
 from youtube_transcript_api import YouTubeTranscriptApi
 import json
 
@@ -117,22 +117,30 @@ if input_method == "YouTube Video Transcription":
 
 # Process text when button is clicked
 if st.button("Modify Text") and user_text.strip():
+    client = init_client()
     try:
-        model = init_claim_model()
-        print("testing gemini")
         with st.spinner("Modifying text with Gemini..."):
-            result = model.generate_content(user_text)
+            print("Testing first gemini")
+            result = client.models.generate_content(
+                model="gemini-2.0-flash-exp", contents=user_text, config=claim_config
+            )
             claims = json.loads(result.text)["claims"]
             print(result.text)
             st.subheader("Modified Text")
             currentIdx = 0
+
+            print("Fact checking claims")
             # Analyze each claim
             for claim in claims:
-                model2 = init_fact_check_model()
-                # claim_result = model2.generate_content(claim)
-
+                claim_result = client.models.generate_content(
+                    model="gemini-2.0-flash-exp", contents=claim, config=fc_config
+                )
+                print(claim_result)
                 currentIdx, highlighted_html = highlight_claim(
-                    user_text.strip(), claim, "", currentIdx
+                    user_text.strip(),
+                    claim,
+                    json.loads("\n".join(claim_result.text.splitlines()[1:-1])),
+                    currentIdx,
                 )
                 if highlighted_html:
                     st.markdown(highlighted_html, unsafe_allow_html=True)
